@@ -114,7 +114,7 @@
     const SHEET_QUESTIONS_S1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=1953790047&single=true&output=csv";
     const SHEET_QUESTIONS_S2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=1322085670&single=true&output=csv";
     const SHEET_QUESTIONS_S3 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=778951923&single=true&output=csv";
-    const scriptURL = "https://script.google.com/macros/s/AKfycbz06NMpFG2XckkTJYsAxP7tew0U-OXvTf11lsezwoggqbX5Wn9LzOnxf8suNijPyhw66Q/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxttz0DW6xexjdv3hnW4EIo7xI3rhCPz-FaNxAV_16JAF_GfvbS-orvwJB6g_LOpF09vQ/exec";
 
     let questions = [];
     let correctAnswers = {};
@@ -143,6 +143,11 @@
         return rows.slice(1).map(row => {
             let obj = {};
             headers.forEach((h, i) => obj[h] = row[i] ? row[i].trim() : "");
+            // جمع الخيارات من الأعمدة المنفصلة
+            obj.choices = [];
+            for (let i = 1; i <= 4; i++) {
+                if (obj[`choice_${i}`]) obj.choices.push(obj[`choice_${i}`]);
+            }
             return obj;
         });
     }
@@ -173,25 +178,25 @@
         function showQuestions() {
             const form = document.getElementById("quizForm");
             form.innerHTML = "";
-            questions.forEach((q, index) => {
-                correctAnswers[q.id] = q.correct;
-                explanations[q.id] = q.explanation;
+        questions.forEach((q, index) => {
+            correctAnswers[q.id] = q.correct;
+            explanations[q.id] = q.explanation;
 
-                let choicesHtml = q.choices.map(c => `
-                    <label>
-                        <input type="radio" name="${q.id}" value="${c}">
-                        <span>${c}</span>
-                    </label>
-                `).join("");
+            let choicesHtml = q.choices.map((c, idx) => `
+                <label>
+                    <input type="radio" name="${q.id}" value="${c}">
+                    <span>${c}</span>
+                </label>
+            `).join("");
 
-                let html = `
-                    <div class="card bg-white p-5 rounded-2xl shadow-lg border border-gray-200 fade-in" style="animation-delay: ${index * 100}ms;">
-                        <p class="font-bold text-lg mb-4 text-gray-800">${index + 1}. ${q.question}</p>
-                        <div class="choices space-y-2">${choicesHtml}</div>
-                    </div>
-                `;
-                form.innerHTML += html;
-            });
+            let html = `
+                <div class="card bg-white p-5 rounded-2xl shadow-lg border border-gray-200 fade-in" style="animation-delay: ${index * 100}ms;">
+                    <p class="font-bold text-lg mb-4 text-gray-800">${index + 1}. ${q.question}</p>
+                    <div class="choices space-y-2">${choicesHtml}</div>
+                </div>
+            `;
+            form.innerHTML += html;
+        });
             
             // Add event listener for selecting answers
             form.querySelectorAll('input[type="radio"]').forEach(radio => {
