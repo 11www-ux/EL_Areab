@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mr Ayman - Quiz</title>
+    <title>Mr Ayman  Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
@@ -136,20 +137,16 @@
     }
 
     async function fetchCSV(url) {
-        const res = await fetch(url);
-        const text = await res.text();
-        const rows = text.trim().split("\n").map(r => r.split(","));
-        const headers = rows[0].map(h => h.trim());
-        return rows.slice(1).map(row => {
-            let obj = {};
-            headers.forEach((h, i) => obj[h] = row[i] ? row[i].trim() : "");
-            // جمع الخيارات من الأعمدة المنفصلة
-            obj.choices = [];
-            for (let i = 1; i <= 4; i++) {
-                if (obj[`choice_${i}`]) obj.choices.push(obj[`choice_${i}`]);
-            }
-            return obj;
-        });
+    const res = await fetch(url);
+    const text = await res.text();
+    const data = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+    return data.map(obj => {
+        obj.choices = [];
+        for (let i = 1; i <= 4; i++) {
+            if (obj[`choice_${i}`]) obj.choices.push(obj[`choice_${i}`]);
+        }
+        return obj;
+    });
     }
 
     document.getElementById("startBtn").addEventListener("click", async () => {
