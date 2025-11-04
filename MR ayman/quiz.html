@@ -109,16 +109,7 @@
     </footer>
 
     <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzKAWpTawaPRZ2_8BCRcjUfeOjWe5UgmRt6vX1V3SeTreKWja89FsgX3L9T_wVrESi82g/exec";
-
-    // ----- إعدادات Airtable (استبدل القيم بالقيم الحقيقية لديك) -----
-    // اكتب هنا الـ BASE ID واسم الجدول (Table name) والتوكن
-    const AIRTABLE_BASE_ID = ""; // مثال: appXXXXXXXXXXXXXX
-    const AIRTABLE_TABLE_NAME = "";   // اسم الجدول كما هو في Airtable (حسّاس لحالة الأحرف)
-    const AIRTABLE_TOKEN = ""; // ضع توكن الـ API هنا
-    // الرابط النهائي لواجهة Airtable API
-    const AIRTABLE_ENDPOINT = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
-    // -----------------------------------------------------------------
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzriOfc6qXbzwFTlWkUpW5o-ujCXtCCB_Eo33zB7ZTIZS2bZ7vgibIGWt9oJCuKvB7P1w/exec";
 
         let questions = [];
         let correctAnswers = {};
@@ -143,6 +134,7 @@
             try {
                 let res = await fetch(scriptURL, {
                     method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ type: "getQuestions", classSheet: `questions_${selectedClass}` })
                 });
                 questions = await res.json();
@@ -252,128 +244,20 @@
             document.getElementById("submitBtn").style.display = 'none';
 
             try {
-                // إذا لم يقم المستخدم بتعديل إعدادات Airtable فالأفضل إرسال نسخة إلى الـ Google Script كنسخة احتياطية
-                const useAirtable = AIRTABLE_BASE_ID !== "YOUR_BASE_ID" && AIRTABLE_TOKEN !== "YOUR_AIRTABLE_TOKEN" && AIRTABLE_BASE_ID;
-
-                // نبني الحقول بحيث نرسل الصف كحقل نصي لتجنب مشكلات Single Select في Airtable
-                const classValue = classNames[selectedClass] || selectedClass;
-                const fields = {
-                    "Timestamp": new Date().toISOString(),
-                    // إرسال الصف في حقل نصي باسم Class_text (أنشئ هذا الحقل في Airtable كـ Single line text)
-                    "Class_text": classValue,
-                    "Name": name,
-                    "Phone": phone,
-                    "Score": score,
-                    "Total": total,
-                    "WrongQuestions": wrong.join(',')
-                };
-
-                if (useAirtable) {
-                    // إرسال إلى Airtable
-                    const res = await fetch(AIRTABLE_ENDPOINT, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${AIRTABLE_TOKEN}`
-                        },
-                        body: JSON.stringify({ fields })
-                    });
-
-                    if (!res.ok) {
-                        // حاول قراءة الجواب كـ JSON لمعرفة سبب الخطأ
-                        let errBody = null;
-                        try { errBody = await res.json(); } catch (e) { errBody = await res.text(); }
-                        console.error('Airtable error:', res.status, errBody);
-
-                        // تعامل خاص مع خطأ خيارات الـ select غير المسموح بها
-                        if (errBody && errBody.error && errBody.error.type === 'INVALID_MULTIPLE_CHOICE_OPTIONS') {
-                            // احتمال أن الحقل "Class" في الـ Airtable هو Single Select ولا يقبل قيمة جديدة.
-                            // => نجرب إعادة الإرسال إلى حقل نصي بديل (مثلاً 'Class_text') إن وجد
-                            const altFieldName = 'Class_text'; // أنشئ هذا الحقل في جدولك كـ 'Single line text' أو عدّل الاسم إن لزم
-                            const altFields = Object.assign({}, fields);
-                            // ضع القيمة في الحقل البديل واحذف الحقل الأصلي لتجنب محاولة إنشاء خيار جديد
-                            altFields[altFieldName] = altFields['Class'];
-                            delete altFields['Class'];
-
-                            try {
-                                const retryRes = await fetch(AIRTABLE_ENDPOINT, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${AIRTABLE_TOKEN}`
-                                    },
-                                    body: JSON.stringify({ fields: altFields })
-                                });
-
-                                if (!retryRes.ok) {
-                                    // إذا الفشل مستمر نخطّر ونرسل للـ Google Script كنسخة احتياطية
-                                    let retryErr = null;
-                                    try { retryErr = await retryRes.json(); } catch(e) { retryErr = await retryRes.text(); }
-                                    console.error('Airtable retry error:', retryRes.status, retryErr);
-                                    await fetch(scriptURL, {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                            type: "saveResult",
-                                            className: classNames[selectedClass],
-                                            name: name,
-                                            phone: phone,
-                                            score: score,
-                                            total: total,
-                                            wrong: wrong
-                                        })
-                                    });
-                                }
-                            } catch (e) {
-                                console.error('Retry to Airtable failed:', e);
-                                await fetch(scriptURL, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        type: "saveResult",
-                                        className: classNames[selectedClass],
-                                        name: name,
-                                        phone: phone,
-                                        score: score,
-                                        total: total,
-                                        wrong: wrong
-                                    })
-                                });
-                            }
-                        } else {
-                            // كنسخة احتياطية، نحاول حفظ نفس النتيجة في Google Script
-                            await fetch(scriptURL, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    type: "saveResult",
-                                    className: classNames[selectedClass],
-                                    name: name,
-                                    phone: phone,
-                                    score: score,
-                                    total: total,
-                                    wrong: wrong
-                                })
-                            });
-                        }
-                    }
-                } else {
-                    // لم يتم إعداد Airtable بعد -> نرسل إلى Google Script كما كان مسبقًا
-                    await fetch(scriptURL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            type: "saveResult",
-                            className: classNames[selectedClass],
-                            name: name,
-                            phone: phone,
-                            score: score,
-                            total: total,
-                            wrong: wrong
-                        }),
-                    });
-                }
-
+                // إرسال النتيجة مباشرة إلى Google Apps Script (شيت results)
+                await fetch(scriptURL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        type: "saveResult",
+                        className: classNames[selectedClass],
+                        name: name,
+                        phone: phone,
+                        score: score,
+                        total: total,
+                        wrong: wrong
+                    })
+                });
             } catch (error) {
                 console.error('Failed to save result:', error);
             }
