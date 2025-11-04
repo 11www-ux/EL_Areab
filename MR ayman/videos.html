@@ -124,7 +124,7 @@
       <div class="master">
         <div class="label"></div>
         <!-- غيّر القيمة في الكود أو هنا (يحفظ محليًا) -->
-        <div id="masterName" class="name" contenteditable="true" title="اضغط لتعديل اسم المدرس"> دكتور ايمن عبدالرحيم </div>
+  <div id="masterName" class="name"> الأريب </div>
       </div>
     </header>
 
@@ -252,12 +252,7 @@ function showSnackbar(text, type = 'info', duration = 3000) {
   }, duration);
 }
 
-/* حفظ اسم المدرس محليًا */
-const masterEl = $('masterName');
-masterEl.addEventListener('input', () => localStorage.setItem('masterName', masterEl.textContent.trim()));
-const savedMaster = localStorage.getItem('masterName');
-if (savedMaster) masterEl.textContent = savedMaster;
-else masterEl.textContent = MASTER_NAME;
+// تم تعطيل التعديل على اسم المدرس وجعله ثابتًا "الأريب"
 
 /* زر الامتحانات */
 
