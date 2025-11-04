@@ -109,44 +109,66 @@
     </footer>
 
     <script>
+
+    // روابط شيتات الأسئلة لكل صف (CSV منشور من Google Sheets)
+    const SHEET_QUESTIONS_S1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=1953790047&single=true&output=csv";
+    const SHEET_QUESTIONS_S2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=1322085670&single=true&output=csv";
+    const SHEET_QUESTIONS_S3 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTYxx9lPQBy4oQ7jzlWyV63ULDzYoQWNf8EWafFdvCwi5MybPNPVfwZIPbvQ3g0hgBoSk8a-NHZfKe/pub?gid=778951923&single=true&output=csv";
     const scriptURL = "https://script.google.com/macros/s/AKfycbz06NMpFG2XckkTJYsAxP7tew0U-OXvTf11lsezwoggqbX5Wn9LzOnxf8suNijPyhw66Q/exec";
 
-        let questions = [];
-        let correctAnswers = {};
-        let explanations = {};
-        let selectedClass = "";
+    let questions = [];
+    let correctAnswers = {};
+    let explanations = {};
+    let selectedClass = "";
 
-        const classNames = {
-            g1: "أولى إعدادي", g2: "تانية إعدادي", g3: "تالتة إعدادي",
-            s1: "أولى ثانوي", s2: "تانية ثانوي", s3: "تالتة ثانوي"
-        };
+    const classNames = {
+        g1: "أولى إعدادي", g2: "تانية إعدادي", g3: "تالتة إعدادي",
+        s1: "أولى ثانوي", s2: "تانية ثانوي", s3: "تالتة ثانوي"
+    };
 
-        document.getElementById("startBtn").addEventListener("click", async () => {
-            selectedClass = document.getElementById("classSelect").value;
-            if (!selectedClass) {
-                alert("من فضلك اختر الصف الدراسي أولاً");
-                return;
-            }
+    function getQuestionsSheetUrl(classKey) {
+        switch (classKey) {
+            case "s1": return SHEET_QUESTIONS_S1;
+            case "s2": return SHEET_QUESTIONS_S2;
+            case "s3": return SHEET_QUESTIONS_S3;
+            default: return SHEET_QUESTIONS_S1;
+        }
+    }
 
-            document.getElementById("startBtn").textContent = "جاري تحميل الأسئلة...";
-            document.getElementById("startBtn").disabled = true;
-
-            try {
-                let res = await fetch(scriptURL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ type: "getQuestions", classSheet: `questions_${selectedClass}` })
-                });
-                questions = await res.json();
-                showQuestions();
-                document.getElementById("classSelection").classList.add("hidden");
-                document.getElementById("quizSection").classList.remove("hidden");
-            } catch (error) {
-                alert("حدث خطأ أثناء تحميل الأسئلة. حاول مرة أخرى.");
-                document.getElementById("startBtn").textContent = "ابدأ الاختبار";
-                document.getElementById("startBtn").disabled = false;
-            }
+    async function fetchCSV(url) {
+        const res = await fetch(url);
+        const text = await res.text();
+        const rows = text.trim().split("\n").map(r => r.split(","));
+        const headers = rows[0].map(h => h.trim());
+        return rows.slice(1).map(row => {
+            let obj = {};
+            headers.forEach((h, i) => obj[h] = row[i] ? row[i].trim() : "");
+            return obj;
         });
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+        selectedClass = document.getElementById("classSelect").value;
+        if (!selectedClass) {
+            alert("من فضلك اختر الصف الدراسي أولاً");
+            return;
+        }
+
+        document.getElementById("startBtn").textContent = "جاري تحميل الأسئلة...";
+        document.getElementById("startBtn").disabled = true;
+
+        try {
+            const sheetUrl = getQuestionsSheetUrl(selectedClass);
+            questions = await fetchCSV(sheetUrl);
+            showQuestions();
+            document.getElementById("classSelection").classList.add("hidden");
+            document.getElementById("quizSection").classList.remove("hidden");
+        } catch (error) {
+            alert("حدث خطأ أثناء تحميل الأسئلة. حاول مرة أخرى.");
+            document.getElementById("startBtn").textContent = "ابدأ الاختبار";
+            document.getElementById("startBtn").disabled = false;
+        }
+    });
 
         function showQuestions() {
             const form = document.getElementById("quizForm");
@@ -266,4 +288,3 @@
 </body>
 
 </html>
-
