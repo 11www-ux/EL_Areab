@@ -425,8 +425,7 @@ function loadAndShowVideo(rawLink, lesson) {
     const parent = document.querySelector('.video-wrap') || document.body;
     parent.appendChild(dbg);
   }
-  dbg.innerHTML = `<b>Raw:</b> ${escapeHtml(raw)}<br><b>Embed:</b> <a id="dbgOpen" href="${final}" target="_blank" rel="noopener">${final}</a>`;
-
+  
   // عرض في الإطار مع handlers
   const frame = $('videoFrame');
   frame.style.display = 'none';
@@ -526,4 +525,5 @@ $('studentCode').addEventListener('keydown', (e) => {
 });
 </script>
 </body>
+
 </html>
